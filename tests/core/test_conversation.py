@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """Tests for ConversationMixin."""
 
-import pytest
-from unittest.mock import patch
-
 from notebooklm_tools.core.base import BaseClient
 from notebooklm_tools.core.conversation import ConversationMixin
 
@@ -28,7 +25,14 @@ class TestConversationMixinImport:
             "_build_conversation_history",
             "_cache_conversation_turn",
             "_parse_query_response",
-            "_extract_answer_from_chunk",
+            "_parse_inner_from_chunk",
+            "_extract_text_from_inner",
+            "_extract_citations",
+            "_extract_citation_mappings",
+            "_extract_suggested_questions",
+            "_extract_source_citation",
+            "_extract_passage_text",
+            "_collect_passage_texts",
             "_extract_source_ids_from_notebook",
         ]
         for method in expected_methods:
@@ -68,20 +72,23 @@ class TestConversationMixinMethods:
         assert result is None
 
     def test_parse_query_response_handles_empty(self):
-        """Test that _parse_query_response handles empty input."""
+        """Test that _parse_query_response handles empty input and returns defaults."""
         mixin = ConversationMixin(cookies={"test": "cookie"}, csrf_token="test")
-        
-        result = mixin._parse_query_response("")
-        
-        assert result == ""
 
-    def test_extract_answer_from_chunk_handles_invalid_json(self):
-        """Test that _extract_answer_from_chunk handles invalid JSON."""
+        result = mixin._parse_query_response("")
+
+        assert result["answer"] == ""
+        assert result["sources_cited"] == []
+        assert result["citation_mappings"] == []
+        assert result["suggested_questions"] == []
+
+    def test_parse_inner_from_chunk_handles_invalid_json(self):
+        """Test that _parse_inner_from_chunk handles invalid JSON."""
         mixin = ConversationMixin(cookies={"test": "cookie"}, csrf_token="test")
-        
-        result = mixin._extract_answer_from_chunk("not valid json")
-        
-        assert result == (None, False)
+
+        result = mixin._parse_inner_from_chunk("not valid json")
+
+        assert result is None
 
     def test_extract_source_ids_from_notebook_handles_none(self):
         """Test that _extract_source_ids_from_notebook handles None input."""

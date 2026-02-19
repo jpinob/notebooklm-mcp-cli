@@ -27,6 +27,11 @@ notebook_add_text(notebook_id, text="My research notes...", title="Notes")
 # Ask questions
 result = notebook_query(notebook_id, query="What are the key points?")
 print(result["answer"])
+print(result["sources_cited"])        # [{source_id, confidence, passage}, ...]
+print(result["citation_mappings"])    # [{start, end, citation_indices}, ...]
+print(result["suggested_questions"])  # ["Follow-up question 1?", ...]
+print(result["turn_number"])          # 1
+print(result["is_follow_up"])         # False
 ```
 
 ### Configure Chat Settings
@@ -417,10 +422,70 @@ f_req = [None, json.dumps(params)]
 ```
 
 ### Query Response
-Streaming JSON with multiple chunks:
-1. **Thinking steps** - "Understanding...", "Exploring...", etc.
-2. **Final answer** - Markdown formatted with citations
-3. **Source references** - Links to specific passages in sources
+
+Streaming batchexecute-style response with anti-XSSI prefix and multiple chunks.
+
+**Chunk format:**
+```
+)]}'
+<byte_count>
+[["wrb.fr", null, "<inner_json>", null, null, null, "generic"]]
+```
+
+Multiple chunks may be present (thinking steps → final answer). Each chunk's `inner_json` is a JSON string that must be parsed separately.
+
+**Inner array structure (`inner[0..5]`):**
+
+| Position | Content | Description |
+|----------|---------|-------------|
+| `inner[0][0]` | Answer text | Markdown-formatted answer (progressively longer in each chunk) |
+| `inner[0][2]` | `[conversation_id, session_id, counter]` | Conversation metadata (present only in final chunk) |
+| `inner[1]` | Source citations | Array of N citation objects (see below) |
+| `inner[2]` | Citation mappings | Maps character ranges in answer → citation indices |
+| `inner[3]` | Suggested questions | Array of follow-up question strings |
+| `inner[4]` | `is_final` flag | `true` only on the last chunk |
+| `inner[5]` | Questions with scores | Questions with relevance scores (optional) |
+
+**Source citation structure (`inner[1][n]`):**
+```python
+[
+    None,
+    None,
+    0.98,                    # [2] confidence score (0.0 - 1.0)
+    [[None, 15213, 16213]],  # [3] character range in source document
+    [passage_segments],      # [4] nested passage text (deeply nested arrays of strings)
+    [                        # [5] source identification
+        [["source-uuid"],    # [5][0][0] source ID (matches notebook source IDs)
+         "version-hash"]     # [5][0][1] version identifier
+    ]
+]
+```
+
+**Passage text extraction:** The passage at `citation[4]` is deeply nested. Collect all strings > 20 characters recursively from the nested arrays to reconstruct the passage text.
+
+**Citation mapping structure (`inner[2][n]`):**
+```python
+[
+    [None, 128, 333],   # [0] character range in the answer text (start, end)
+    [0, 1, 2, 3]        # [1] indices into inner[1] (which citations apply)
+]
+```
+
+Example: answer characters 128-333 are supported by citations at indices 0, 1, 2, 3 in `inner[1]`.
+
+**Parsed response format (returned by `_parse_query_response`):**
+```python
+{
+    "answer": "Based on the sources...",
+    "sources_cited": [
+        {"source_id": "5beafb81-...", "confidence": 0.98, "passage": "This book focuses on..."},
+    ],
+    "citation_mappings": [
+        {"start": 128, "end": 333, "citation_indices": [0, 1, 2]},
+    ],
+    "suggested_questions": ["Why did Peter question...?", "What role does Nous play...?"],
+}
+```
 
 ---
 

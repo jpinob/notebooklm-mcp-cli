@@ -10,11 +10,29 @@ VALID_RESPONSE_LENGTHS = ("default", "longer", "shorter")
 MAX_PROMPT_LENGTH = 10_000
 
 
+class SourceCitation(TypedDict):
+    """A source citation from a query response."""
+    source_id: str
+    confidence: float
+    passage: str
+
+
+class CitationMapping(TypedDict):
+    """Maps a range in the answer text to source citation indices."""
+    answer_start: int
+    answer_end: int
+    citation_indices: list[int]
+
+
 class QueryResult(TypedDict):
     """Result of a notebook query."""
     answer: str
     conversation_id: Optional[str]
-    sources_used: list
+    sources_cited: list[SourceCitation]
+    citation_mappings: list[CitationMapping]
+    suggested_questions: list[str]
+    turn_number: int
+    is_follow_up: bool
 
 
 class ConfigureResult(TypedDict):
@@ -44,7 +62,7 @@ def query(
         timeout: Request timeout in seconds
 
     Returns:
-        QueryResult with answer, conversation_id, and sources_used
+        QueryResult with answer, conversation_id, sources_cited, and metadata
 
     Raises:
         ValidationError: If query is empty
@@ -71,7 +89,11 @@ def query(
         return {
             "answer": result.get("answer", ""),
             "conversation_id": result.get("conversation_id"),
-            "sources_used": result.get("sources_used", []),
+            "sources_cited": result.get("sources_cited", []),
+            "citation_mappings": result.get("citation_mappings", []),
+            "suggested_questions": result.get("suggested_questions", []),
+            "turn_number": result.get("turn_number", 0),
+            "is_follow_up": result.get("is_follow_up", False),
         }
 
     raise ServiceError(

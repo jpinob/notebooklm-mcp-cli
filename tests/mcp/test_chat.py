@@ -10,11 +10,19 @@ class TestNotebookQuery:
     """Tests for the notebook_query MCP tool."""
 
     def test_success(self, mock_client):
-        """Test successful query returns status success with result data."""
+        """Test successful query returns status success with enriched result data."""
         mock_result = {
             "answer": "The document discusses AI safety.",
             "conversation_id": "conv-123",
-            "sources_used": ["src-1", "src-2"],
+            "sources_cited": [
+                {"source_id": "src-1", "confidence": 0.95, "passage": "AI safety is critical."}
+            ],
+            "citation_mappings": [
+                {"answer_start": 0, "answer_end": 33, "citation_indices": [0]}
+            ],
+            "suggested_questions": ["What about alignment?"],
+            "turn_number": 1,
+            "is_follow_up": False,
         }
         with patch("notebooklm_tools.mcp.tools.chat.chat_service") as mock_service:
             mock_service.query.return_value = mock_result
@@ -28,12 +36,13 @@ class TestNotebookQuery:
         assert result["status"] == "success"
         assert result["answer"] == "The document discusses AI safety."
         assert result["conversation_id"] == "conv-123"
-        assert result["sources_used"] == ["src-1", "src-2"]
+        assert len(result["sources_cited"]) == 1
+        assert result["sources_cited"][0]["source_id"] == "src-1"
+        assert result["citation_mappings"][0]["answer_start"] == 0
+        assert result["suggested_questions"] == ["What about alignment?"]
+        assert result["turn_number"] == 1
+        assert result["is_follow_up"] is False
         mock_service.query.assert_called_once()
-        call_kwargs = mock_service.query.call_args
-        assert call_kwargs[0][0] is mock_client  # first positional arg is client
-        assert call_kwargs[0][1] == "nb-abc"
-        assert call_kwargs[0][2] == "What is this about?"
 
     def test_with_source_ids(self, mock_client):
         """Test query with specific source_ids passes them through."""

@@ -19,14 +19,17 @@ class TestQuery:
         mock_client.query.return_value = {
             "answer": "The answer is 42.",
             "conversation_id": "conv-123",
-            "sources_used": ["src-1", "src-2"],
+            "sources_cited": [
+                {"source_id": "src-1", "confidence": 0.9, "passage": "p1"},
+                {"source_id": "src-2", "confidence": 0.8, "passage": "p2"},
+            ],
         }
 
         result = query(mock_client, "nb-123", "What is the meaning?")
 
         assert result["answer"] == "The answer is 42."
         assert result["conversation_id"] == "conv-123"
-        assert len(result["sources_used"]) == 2
+        assert len(result["sources_cited"]) == 2
 
     def test_empty_query_raises_validation_error(self, mock_client):
         with pytest.raises(ValidationError, match="Query text is required"):
@@ -67,6 +70,71 @@ class TestQuery:
             conversation_id=None,
             timeout=30.0,
         )
+
+    def test_passes_through_sources_cited(self, mock_client):
+        mock_client.query.return_value = {
+            "answer": "The answer.",
+            "conversation_id": "conv-1",
+            "sources_cited": [
+                {"source_id": "src-1", "confidence": 0.95, "passage": "Key finding."}
+            ],
+            "citation_mappings": [
+                {"answer_start": 0, "answer_end": 11, "citation_indices": [0]}
+            ],
+            "suggested_questions": ["What about X?"],
+            "turn_number": 1,
+            "is_follow_up": False,
+        }
+        result = query(mock_client, "nb-123", "Question?")
+        assert len(result["sources_cited"]) == 1
+        assert result["sources_cited"][0]["source_id"] == "src-1"
+        assert result["sources_cited"][0]["confidence"] == 0.95
+
+    def test_passes_through_citation_mappings(self, mock_client):
+        mock_client.query.return_value = {
+            "answer": "The answer with citations.",
+            "conversation_id": "conv-1",
+            "citation_mappings": [
+                {"answer_start": 0, "answer_end": 25, "citation_indices": [0, 1]}
+            ],
+        }
+        result = query(mock_client, "nb-123", "Question?")
+        assert len(result["citation_mappings"]) == 1
+        assert result["citation_mappings"][0]["answer_start"] == 0
+
+    def test_passes_through_suggested_questions(self, mock_client):
+        mock_client.query.return_value = {
+            "answer": "The answer.",
+            "conversation_id": "conv-1",
+            "suggested_questions": ["Follow-up 1?", "Follow-up 2?"],
+        }
+        result = query(mock_client, "nb-123", "Question?")
+        assert result["suggested_questions"] == ["Follow-up 1?", "Follow-up 2?"]
+
+    def test_passes_through_turn_metadata(self, mock_client):
+        mock_client.query.return_value = {
+            "answer": "Follow-up answer.",
+            "conversation_id": "conv-1",
+            "turn_number": 3,
+            "is_follow_up": True,
+        }
+        result = query(mock_client, "nb-123", "More?")
+        assert result["turn_number"] == 3
+        assert result["is_follow_up"] is True
+
+    def test_defaults_for_missing_fields(self, mock_client):
+        """Old-format core response still works with backward-compatible defaults."""
+        mock_client.query.return_value = {
+            "answer": "Legacy answer.",
+            "conversation_id": "conv-old",
+        }
+        result = query(mock_client, "nb-123", "Question?")
+        assert result["answer"] == "Legacy answer."
+        assert result["sources_cited"] == []
+        assert result["citation_mappings"] == []
+        assert result["suggested_questions"] == []
+        assert result["turn_number"] == 0
+        assert result["is_follow_up"] is False
 
 
 class TestConfigureChat:
