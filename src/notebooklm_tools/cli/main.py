@@ -52,7 +52,7 @@ from notebooklm_tools.cli.commands.verbs import (
     update_app,
 )
 
-console = Console()
+console = Console(legacy_windows=False)
 
 # Main application
 app = typer.Typer(
@@ -507,8 +507,26 @@ def main(
         console.print(ctx.get_help())
 
 
+def _ensure_utf8_console():
+    """Reconfigure stdout/stderr to UTF-8 on Windows to prevent UnicodeEncodeError.
+
+    Windows legacy console uses cp1252 which cannot encode Unicode symbols
+    like ✓ (U+2713) and ✗ (U+2717) used throughout the CLI output.
+    """
+    import sys
+    if sys.platform == "win32":
+        for stream_name in ("stdout", "stderr"):
+            stream = getattr(sys, stream_name, None)
+            if stream and hasattr(stream, "reconfigure"):
+                try:
+                    stream.reconfigure(encoding="utf-8", errors="replace")
+                except (OSError, AttributeError):
+                    pass
+
+
 def cli_main():
     """Main CLI entry point with error handling."""
+    _ensure_utf8_console()
     try:
         app()
     except Exception as e:

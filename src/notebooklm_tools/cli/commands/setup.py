@@ -20,7 +20,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     name="setup",
     help="Configure NotebookLM MCP server for AI tools",

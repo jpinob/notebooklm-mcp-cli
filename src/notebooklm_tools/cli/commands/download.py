@@ -18,8 +18,8 @@ from notebooklm_tools.core.alias import get_alias_manager
 from notebooklm_tools.services import downloads as downloads_service, ServiceError
 
 app = typer.Typer(help="Download artifacts from notebooks.")
-console = Console()
-err_console = Console(stderr=True)
+console = Console(legacy_windows=False)
+err_console = Console(stderr=True, legacy_windows=False)
 
 
 def _download_with_progress(

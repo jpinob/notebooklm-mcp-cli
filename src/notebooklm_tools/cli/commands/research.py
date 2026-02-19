@@ -11,7 +11,7 @@ from notebooklm_tools.core.exceptions import NLMError
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import research as research_service, ServiceError
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Research and discover sources",
     rich_markup_mode="rich",

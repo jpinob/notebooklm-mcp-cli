@@ -6,7 +6,7 @@ from rich.table import Table
 
 from notebooklm_tools.core.alias import get_alias_manager, detect_id_type
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Manage ID aliases",
     rich_markup_mode="rich",

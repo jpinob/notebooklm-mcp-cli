@@ -11,7 +11,7 @@ from notebooklm_tools.cli.formatters import detect_output_format, get_formatter
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import sources as sources_service, ServiceError
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Manage sources",
     rich_markup_mode="rich",

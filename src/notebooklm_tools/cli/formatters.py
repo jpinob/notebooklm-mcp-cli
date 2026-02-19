@@ -51,7 +51,7 @@ class Formatter:
     """Base class for output formatters."""
 
     def __init__(self, console: Console | None = None) -> None:
-        self.console = console or Console()
+        self.console = console or Console(legacy_windows=False)
 
     def format_notebooks(
         self,

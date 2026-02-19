@@ -10,7 +10,7 @@ from notebooklm_tools.core.exceptions import NLMError
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import chat as chat_service, ServiceError
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Configure chat settings",
     rich_markup_mode="rich",

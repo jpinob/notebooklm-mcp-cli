@@ -39,10 +39,18 @@ htmlcov/
 
 # Misc
 .DS_Store
+Thumbs.db
 *.log
 
-# Credentials
+# Credentials and secrets
 cookies.txt
+*.cookie
+*.token
+.env
+.env.*
+*.env
+secrets/
+credentials/
 
 # uv
 .uv/
@@ -64,9 +72,14 @@ downloads/
 # Auto Claude data directory
 .auto-claude/
 .worktrees/
-.claude/
 run*.notebooklm-py-analysis/
 *.code-workspace
+
+# Claude Code (ignore runtime files, allow project config)
+.claude/*
+!.claude/agents/
+!.claude/skills/
+!.claude/settings.json
 
 # Build artifacts
 *.mcpb

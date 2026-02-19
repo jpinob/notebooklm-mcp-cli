@@ -126,8 +126,17 @@ def save_tokens_to_cache(tokens: AuthTokens, silent: bool = False) -> None:
         silent: If True, don't print confirmation message (for auto-updates)
     """
     cache_path = get_cache_path()
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        cache_path.parent.chmod(0o700)
+    except OSError:
+        pass  # Windows may not support Unix permissions
     with open(cache_path, "w") as f:
         json.dump(tokens.to_dict(), f, indent=2)
+    try:
+        cache_path.chmod(0o600)
+    except OSError:
+        pass  # Windows may not support Unix permissions
     if not silent:
         logger.info(f"Auth tokens cached to {cache_path}")
 

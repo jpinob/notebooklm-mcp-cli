@@ -11,7 +11,7 @@ from notebooklm_tools.core.alias import get_alias_manager
 from notebooklm_tools.core.exceptions import NLMError
 from notebooklm_tools.cli.utils import get_client
 
-console = Console()
+console = Console(legacy_windows=False)
 
 HELP_TEXT = """
 [bold]Available Commands:[/bold]

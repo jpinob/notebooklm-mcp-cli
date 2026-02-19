@@ -6,7 +6,7 @@ from rich.syntax import Syntax
 
 from notebooklm_tools.utils.config import get_config, save_config, _config_to_toml
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Manage configuration settings",
     rich_markup_mode="rich",

@@ -11,7 +11,7 @@ from notebooklm_tools.core.exceptions import NLMError
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import notes as notes_service, ServiceError
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Manage notes",
     rich_markup_mode="rich",

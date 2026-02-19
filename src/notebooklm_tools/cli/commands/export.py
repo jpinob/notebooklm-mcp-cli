@@ -10,7 +10,7 @@ from notebooklm_tools.core.exceptions import NLMError
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import exports as export_service, ServiceError
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Export artifacts to Google Docs/Sheets",
     rich_markup_mode="rich",

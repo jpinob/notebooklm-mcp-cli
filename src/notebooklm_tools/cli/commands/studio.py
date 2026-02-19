@@ -12,7 +12,7 @@ from notebooklm_tools.cli.formatters import detect_output_format, get_formatter
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import studio as studio_service, ServiceError, ValidationError
 
-console = Console()
+console = Console(legacy_windows=False)
 
 # Main studio app for status/delete
 app = typer.Typer(

@@ -5,7 +5,7 @@ from notebooklm_tools.core.client import NotebookLMClient
 from notebooklm_tools.core.auth import load_cached_tokens, AuthManager
 from notebooklm_tools.utils.config import get_config
 
-console = Console()
+console = Console(legacy_windows=False)
 
 def get_client(profile: str | None = None) -> NotebookLMClient:
     """Get an authenticated NotebookLM client.

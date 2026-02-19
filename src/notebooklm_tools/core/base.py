@@ -492,6 +492,8 @@ class BaseClient:
         url = self._build_url(rpc_id, path)
 
         # Enhanced debug logging
+        # WARNING: Debug logs may contain notebook content and user data.
+        # Do not enable --debug in production or share debug output publicly.
         if logger.isEnabledFor(logging.DEBUG):
             method_name = RPC_NAMES.get(rpc_id, "unknown")
             logger.debug("=" * 70)
@@ -504,16 +506,16 @@ class BaseClient:
             for key, value in url_params.items():
                 logger.debug(f"  {key}: {value}")
 
-            # Decode and display request body
+            # Decode and display request body (params only, CSRF already redacted)
             logger.debug("-" * 70)
             logger.debug("Request Params:")
             decoded_body = _decode_request_body(body)
             if "params" in decoded_body:
-                logger.debug(_format_debug_json(decoded_body["params"]))
+                logger.debug(_format_debug_json(decoded_body["params"], max_length=500))
             elif "f.req" in decoded_body:
-                logger.debug(_format_debug_json(decoded_body["f.req"]))
+                logger.debug(_format_debug_json(decoded_body["f.req"], max_length=500))
             else:
-                logger.debug(_format_debug_json(decoded_body))
+                logger.debug(_format_debug_json(decoded_body, max_length=500))
 
         try:
             if timeout:
@@ -526,8 +528,8 @@ class BaseClient:
                 logger.debug("-" * 70)
                 logger.debug(f"Response Status: {response.status_code}")
                 if response.status_code >= 400:
-                    logger.debug("Error Response Body:")
-                    logger.debug(response.text[:2000] if len(response.text) > 2000 else response.text)
+                    logger.debug("Error Response Body (truncated):")
+                    logger.debug(response.text[:500] if len(response.text) > 500 else response.text)
                     logger.debug("=" * 70)
 
             response.raise_for_status()
@@ -536,11 +538,11 @@ class BaseClient:
             parsed = self._parse_response(response.text)
             result = self._extract_rpc_result(parsed, rpc_id)
 
-            # Enhanced debug logging for extracted result
+            # Enhanced debug logging for extracted result (truncated to avoid leaking full content)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("-" * 70)
                 logger.debug("Response Data:")
-                logger.debug(_format_debug_json(result))
+                logger.debug(_format_debug_json(result, max_length=500))
                 logger.debug("=" * 70)
             
             return result

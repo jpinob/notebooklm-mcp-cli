@@ -11,7 +11,7 @@ from notebooklm_tools.core.exceptions import NLMError
 from notebooklm_tools.cli.utils import get_client
 from notebooklm_tools.services import sharing as sharing_service, ServiceError
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Manage notebook sharing",
     rich_markup_mode="rich",

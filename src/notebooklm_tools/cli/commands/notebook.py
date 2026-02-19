@@ -15,7 +15,7 @@ from notebooklm_tools.services import (
     ServiceError,
 )
 
-console = Console()
+console = Console(legacy_windows=False)
 app = typer.Typer(
     help="Manage notebooks",
     rich_markup_mode="rich",
