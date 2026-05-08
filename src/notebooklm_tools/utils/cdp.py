@@ -674,14 +674,15 @@ def extract_cookies_via_existing_cdp(
 
 def has_chrome_profile(profile_name: str = "default") -> bool:
     """Check if a Chrome profile with saved login exists.
-    
-    Returns True if the profile directory exists and has login cookies,
-    indicating that the user has previously authenticated.
+
+    Chrome >= v98 stores cookies under Default/Network/Cookies.
+    Older versions used Default/Cookies. Either path indicates a
+    previously-authenticated profile that headless auth can reuse.
     """
     profile_dir = get_chrome_profile_dir(profile_name)
-    # Check for Cookies file which indicates the profile has been used
-    cookies_file = profile_dir / "Default" / "Cookies"
-    return cookies_file.exists()
+    legacy = profile_dir / "Default" / "Cookies"
+    modern = profile_dir / "Default" / "Network" / "Cookies"
+    return legacy.exists() or modern.exists()
 
 
 def cleanup_chrome_profile_cache(profile_name: str = "default") -> int:
@@ -814,8 +815,31 @@ def run_headless_auth(
             session_id=session_id or "",
             extracted_at=time.time(),
         )
-        save_tokens_to_cache(tokens)
-        
+
+        # Persist to whichever cache layer is active. The multi-profile
+        # store is canonical (load_cached_tokens prefers it); auth.json is
+        # a legacy fallback that gets ignored when a profile exists, so
+        # writing only there leaves the fresh tokens orphaned.
+        try:
+            from notebooklm_tools.core.auth import get_auth_manager
+            manager = get_auth_manager(profile_name)
+            if manager.profile_exists():
+                prev_email = ""
+                try:
+                    prev_email = manager.load_profile().email or ""
+                except Exception:
+                    pass
+                manager.save_profile(
+                    cookies=cookies,
+                    csrf_token=csrf_token or "",
+                    session_id=session_id or "",
+                    email=prev_email,
+                )
+            else:
+                save_tokens_to_cache(tokens)
+        except Exception:
+            save_tokens_to_cache(tokens)
+
         # Clean up cache to minimize profile size
         cleanup_chrome_profile_cache(profile_name)
         

@@ -666,21 +666,40 @@ class BaseClient:
     def _update_cached_tokens(self) -> None:
         """Update the cached auth tokens with newly extracted CSRF token and session ID.
 
-        This avoids re-fetching the NotebookLM page on every client initialization,
-        significantly improving performance for subsequent API calls.
+        Writes to whichever cache layer is currently active:
+          - profiles/<name>/metadata.json when multi-profile auth is in use
+          - auth.json (legacy) otherwise
+
+        Without this routing the legacy writer ran while load_cached_tokens
+        prefers the profile store, leaving fresh tokens orphaned.
         """
         try:
-            import time
-            from .auth import AuthTokens, save_tokens_to_cache, load_cached_tokens
+            from .auth import (
+                AuthTokens,
+                get_auth_manager,
+                load_cached_tokens,
+                save_tokens_to_cache,
+            )
 
-            # Load existing cache or create new
+            # Prefer the active profile when present (canonical store)
+            manager = get_auth_manager()
+            if manager.profile_exists():
+                profile = manager.load_profile()
+                manager.save_profile(
+                    cookies=profile.cookies,
+                    csrf_token=self.csrf_token,
+                    session_id=self._session_id,
+                    email=profile.email,
+                )
+                return
+
+            # Legacy path: no profile, write to auth.json
+            import time
             cached = load_cached_tokens()
             if cached:
-                # Update existing cache with new tokens
                 cached.csrf_token = self.csrf_token
                 cached.session_id = self._session_id
             else:
-                # Create new cache entry
                 cached = AuthTokens(
                     cookies=self.cookies,
                     csrf_token=self.csrf_token,
